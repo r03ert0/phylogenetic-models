@@ -1,0 +1,214 @@
+<html>
+
+<style>
+body {
+    background: black;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+#view {
+    display:inline-block;
+    width:1000px;
+    height:800px;
+}
+</style>
+
+<h3><span id='model'></span> Model of Phenotypic Evolution</h3>
+
+<div>
+    Iteration: <span id='iter'></span>
+</div>
+
+<svg id='view'>
+    <path id='tree' style='stroke:white;fill:none'/>
+</svg>
+
+<script src='http://localhost/libs/d3/4.13.0/d3.min.js'></script>
+
+<script>
+const splitProb = 0.01;
+const ph0 = 400; // BM, OU, EB
+const sigma = 15; // BM, OU, EB
+const alpha = 0.01; // OU
+const theta = 200; // OU
+const r = 1.002; // EB
+const model = 'EB';
+
+let uid = 1;
+let iter = 0;
+let nbranches = 1;
+const maxIter = 1000;
+let p = `M0,${ph0}`;
+const ph = [{ph: ph0, path:p, start: iter, id: uid, parent: uid}];
+
+/**
+ * @function newPath
+ * @desc Create a new path for a new phenotype branch
+ * @param ob object The new branch object
+ * @returnValue null On return, a branch is created, its path added to the branch object, and added to the DOM
+ */
+function newPath(ob) {
+    const tmp = (0xffffff*Math.random()|0).toString(16);
+    const colour = '#' + ('00' + tmp).slice(-6) + 'ff';
+    console.log(tmp, colour);
+
+    d3.select('#view').append('path')
+        .attr('id',`bm${ob.id}`)
+        .attr('d', ob.path)
+        .attr('style',`stroke:${colour};fill:none;stroke-width:3`);
+
+    d3.select('#view').append('circle')
+        .attr('style',`cx:${iter};cy:${ob.ph};r:5;fill:white`);
+}
+
+/**
+ * @function simulation
+ * @desc Simulation step. Advance the phenotype and split species
+ * @param arr array A tree branch object
+ * @returnValue none
+ */
+function simulation(arr) {
+    if(arr.length === 1) {
+        // Random change of species phenotype
+        ob = arr[0];
+        switch(model) {
+            case 'BM':
+                ob.ph += sigma*(Math.random()-0.5)*2;
+                break;
+            case 'OU':
+                ob.ph += alpha*(theta - ob.ph) + sigma*(Math.random()-0.5)*2;
+                break;
+            case 'EB':
+                ob.ph += sigma*Math.pow(r,-iter)*(Math.random()-0.5)*2;
+                break;
+        }
+        ob.path += `L${iter},${ob.ph}`;
+        d3.select(`#bm${ob.id}`).attr('d', ob.path);
+
+        // Species split event
+        if(Math.random() < splitProb/nbranches) {
+            const ob1 = JSON.parse(JSON.stringify(ob));
+            const ob2 = JSON.parse(JSON.stringify(ob));
+            uid += 1;
+            ob2.path = `M${iter},${ob2.ph}`;
+            ob2.start = iter;
+            ob2.parent = ob1.id;
+            ob2.id = uid;
+            newPath(ob2);
+            arr[0] = [ob1];
+            arr[1] = [ob2];
+            nbranches += 1;
+        }
+    } else {
+        let j;
+        for(j=0;j<arr.length;j++) {
+            simulation(arr[j]);
+        }
+    }
+}
+
+/**
+ * @function sortedTips
+ * @desc Return an array with the tree tips sorted in the order they should have not to mix
+ * @returnValue An array with tree tips
+ */
+function sortedTips() {
+    let ntips = 0;
+    let br1 = [], br2 = [], nodes;
+    let j, k;
+    const tips = [];
+    let pip = 0;
+
+    for(j=0;j<ph.length;j++) {
+        br1.push(ph[j]);
+    }
+    do {
+        nodes = 0;
+        br2 = [];
+        for(j=0;j<br1.length;j++) {
+            if(br1[j].length == undefined) {
+                br2.push(br1[j]);
+            } else {
+                for(k=0;k<br1[j].length;k++) {
+                    br2.push(br1[j][k]);
+                    nodes++;
+                }
+            }
+        }
+        br1 = br2;
+    } while(nodes);
+
+    return br1;
+}
+
+/**
+ * @function plotTree
+ * @desc Plot a phylogenetic tree associated with the phenotypic tree
+ * @returnValue none
+ */
+function plotTree() {
+    let branches = [], nodes = [];
+    let j, k, ntips;
+    let p = '';
+    const tips = sortedTips();
+    const y = [];
+
+    for(j=0;j<tips.length;j++) {
+        y[tips[j].id] = 1+j;
+    }
+
+    for(j=0;j<ph.length;j++) {
+        branches.push(ph[j]);
+    }
+
+    do {
+        nodes = [];
+        for(j=0;j<branches.length;j++) {
+            if(branches[j].length == undefined) {
+                let or1 = y[branches[j].parent];
+                let or2 = y[branches[j].id];
+                console.log(or1,or2);
+                p += `M${branches[j].start},${or1*10}L${branches[j].start},${or2*10}L${iter},${or2*10}`;
+            } else {
+                for(k=0;k<branches[j].length;k++) {
+                    nodes.push(branches[j][k]);
+                }
+            }
+        }
+        branches = nodes;
+    } while(nodes.length);
+
+    d3.select('#tree').attr('d', p);
+}
+
+// set the webpage title
+switch(model) {
+    case 'BM':
+        document.getElementById('model').innerHTML = "Brownian Motion";
+        break;
+    case 'OU':
+        document.getElementById('model').innerHTML = "Ornstein-Uhlenbeck";
+        break;
+    case 'EB':
+        document.getElementById('model').innerHTML = "Early Burst";
+        break;
+}
+
+// start a new tree
+newPath(ph[0]);
+
+// launch the simulation
+setInterval(()=>{
+    if(iter>=maxIter) {
+        return;
+    }
+    iter+=2;
+    document.getElementById('iter').innerHTML = iter;
+    simulation(ph);
+    plotTree();
+}, 20);
+
+</script>
+
+</html>
