@@ -11,10 +11,10 @@ The models and their parameters have to be configured in the code.
 
 
 Brownian Motion Model
-![large gif 640x338](https://user-images.githubusercontent.com/6297454/41223451-2487ce00-6d6a-11e8-8d78-4f6d37e0f1fb.gif)
+![large gif 1378x728](https://user-images.githubusercontent.com/6297454/41330540-644c8ba0-6ed4-11e8-81b6-6aa01349c5b6.gif)
 
 Ornstein-Uhlenbeck Model
-![large gif 640x338](https://user-images.githubusercontent.com/6297454/41223505-446e82a4-6d6a-11e8-969a-0604501dc542.gif)
+![large gif 1378x728](https://user-images.githubusercontent.com/6297454/41330547-7052da12-6ed4-11e8-85c8-95fdfbb71049.gif)
 
 Early Burst Model
-![large gif 640x338](https://user-images.githubusercontent.com/6297454/41223557-6a9a2122-6d6a-11e8-8134-3d09eef71fe6.gif)
+![large gif 1378x728](https://user-images.githubusercontent.com/6297454/41224222-40c5e3f2-6d6c-11e8-87dd-8ee501fb227d.gif)
